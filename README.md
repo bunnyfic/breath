@@ -14,9 +14,9 @@
 </p>
 
 <p align="center">
-  <img src="<img width="1336" height="597" alt="Screenshot 2026-11-01 192424" src="https://github.com/user-attachments/assets/27addebe-23bc-47b3-af75-ab5e976fbcf4" />
+  <img src=""https://github.com/user-attachments/assets/27addebe-23bc-47b3-af75-ab5e976fbcf4"" height="597" alt="Screenshot 2026-11-01 192424"  />
 " alt="Dashboard" width="49%">
-  <img src="<img width="1345" height="581" alt="Screenshot 2026-11-01 192445" src="https://github.com/user-attachments/assets/da8e2f17-434b-4d70-b67c-4d5bdf36c9aa" />
+  <img src=""Screenshot 2026-11-01 192445" src="https://github.com/user-attachments/assets/da8e2f17-434b-4d70-b67c-4d5bdf36c9aa" height="581"  />
 " alt="Forecast explorer" width="49%">
 </p>
 
