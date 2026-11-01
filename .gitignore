@@ -1,0 +1,18 @@
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Training artefacts (big / regenerable)
+training/aqi_history.csv
+training/aqi_model.zip
+training/model/
+
+# Secrets - never commit
+.env
+*.pem
+*.csv.bak

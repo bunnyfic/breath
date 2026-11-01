@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f4f7fb">
+<title>Breathe · Air quality dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #141414;
+    --surface: #202020;
+    --surface-soft: #292929;
+    --ink: #f5f5f1;
+    --muted: #a3a3a3;
+    --line: #383838;
+    --navy: #090909;
+    --teal: #e50914;
+    --teal-soft: #351719;
+    --rose: #e50914;
+    --shadow: 0 5px 20px rgba(0, 0, 0, 0.28);
+    --radius: 16px;
+    --sans: "DM Sans", "Segoe UI", sans-serif;
+    --display: "Manrope", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; min-width: 320px; background: radial-gradient(ellipse at 85% 0%, rgba(120, 0, 5, .15), transparent 34%), var(--page); color: var(--ink); font: 14px/1.5 var(--sans); }
+  button, select, input { font: inherit; }
+  button, select { color: inherit; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid rgba(24, 169, 153, .35); outline-offset: 2px; }
+  button { cursor: pointer; }
+  .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+  .sidebar { display: flex; flex-direction: column; padding: 25px 16px 18px; background: var(--navy); color: #dce5ef; }
+  .brand { display: flex; align-items: center; gap: 11px; padding: 2px 9px 28px; color: #fff; font: 800 17px var(--display); letter-spacing: -.04em; }
+  .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 11px; background: #e50914; color: #fff; font-size: 19px; }
+  .side-label { margin: 10px 10px 8px; color: #93a6bc; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .nav-link { display: flex; align-items: center; gap: 12px; width: 100%; margin: 2px 0; padding: 10px 11px; border: 0; border-radius: 10px; color: #c5d1df; background: transparent; text-align: left; }
+  .nav-link:hover, .nav-link.active { background: rgba(229,9,20,.17); color: #fff; }
+  .nav-icon { width: 18px; text-align: center; font-size: 16px; }
+  .side-spacer { flex: 1; }
+  .sidebar-note { padding: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; color: #b6c4d2; font-size: 11px; }
+  .sidebar-note strong { display: block; margin-bottom: 4px; color: #fff; font-size: 12px; }
+  .main { min-width: 0; padding: 26px clamp(18px, 3vw, 42px) 40px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; }
+  .page-kicker { color: var(--muted); font-size: 12px; font-weight: 600; }
+  h1 { margin: 2px 0 0; font: 800 clamp(22px, 3vw, 29px)/1.25 var(--display); letter-spacing: -.045em; }
+  .top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
+  .control, .select-control { min-height: 39px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+  .select-control { min-width: 170px; }
+  .icon-button, .outline-button { min-height: 38px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+  .icon-button:hover, .outline-button:hover { border-color: #b8c5d4; background: #fbfcfe; }
+  .favorite-button { color: var(--rose); font-size: 16px; }
+  .favorite-button[aria-pressed="true"] { border-color: #f0c4d2; background: #fff3f7; }
+  .button-primary { border-color: var(--teal); background: var(--teal); color: #fff; font-weight: 700; }
+  .button-primary:hover { background: #b20710; }
+  .status-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 24px; margin: -10px 0 12px; color: var(--muted); font-size: 12px; }
+  .status-message.error { color: #bd425c; }
+  .dashboard { display: grid; gap: 16px; }
+  .card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+  .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .card-title { margin: 0; font: 700 15px var(--display); letter-spacing: -.02em; }
+  .card-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+  .overview-grid { display: grid; grid-template-columns: minmax(270px, 1.05fr) repeat(3, minmax(145px, .75fr)); gap: 14px; }
+  .gauge-card { display: grid; grid-template-columns: minmax(130px, .9fr) minmax(120px, 1fr); align-items: center; gap: 12px; min-height: 190px; }
+  .gauge-wrap { position: relative; width: min(100%, 178px); margin: 0 auto; aspect-ratio: 1; }
+  .gauge-wrap svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge-track, .gauge-progress { fill: none; stroke-width: 12; }
+  .gauge-track { stroke: #3a3a3a; }
+  .gauge-progress { stroke-linecap: round; transition: stroke-dashoffset 550ms ease, stroke 250ms ease; }
+  .gauge-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gauge-number { font: 800 39px/1 var(--display); letter-spacing: -.06em; }
+  .gauge-caption { margin-top: 6px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .gauge-copy .eyebrow { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .category-pill { display: inline-flex; align-items: center; gap: 7px; margin: 8px 0; padding: 5px 9px; border-radius: 999px; background: var(--surface-soft); font-size: 12px; font-weight: 700; }
+  .category-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .gauge-advice { margin: 2px 0 0; color: var(--muted); font-size: 11px; }
+  .metric-card { display: flex; min-height: 190px; flex-direction: column; justify-content: space-between; }
+  .metric-label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .metric-value { margin: 12px 0 2px; font: 800 clamp(27px, 3vw, 37px)/1.1 var(--display); letter-spacing: -.06em; }
+  .metric-unit { color: var(--muted); font-size: 11px; }
+  .metric-foot { display: flex; align-items: center; gap: 6px; margin-top: 14px; color: var(--muted); font-size: 11px; }
+  .metric-icon { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; background: #351719; color: #ff6b72; font-size: 15px; }
+  .delta { font-weight: 700; }
+  .delta.up { color: #c75a62; }
+  .delta.down { color: #218c72; }
+  .dashboard-row { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .85fr); gap: 14px; }
+  .chart-card { min-height: 340px; }
+  .chart-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+  .segmented { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
+  .segment { padding: 6px 9px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; }
+  .segment:hover { color: var(--ink); }
+  .segment[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(30,48,70,.12); }
+  .series-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 10px; }
+  .series-toggle[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+  .series-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+  .series-dot.forecast { background: #d59a50; }
+  .chart-scroll { width: 100%; overflow-x: auto; }
+  .trend-chart { display: block; width: 100%; min-width: 510px; height: auto; overflow: visible; }
+  .trend-chart text { font-family: var(--sans); }
+  .chart-point { cursor: pointer; }
+  .chart-note { min-height: 30px; margin: 8px 2px 0; color: var(--muted); font-size: 11px; }
+  .pollutant-list { display: grid; gap: 14px; margin-top: 20px; }
+  .pollutant-row { display: grid; grid-template-columns: 55px minmax(40px, 1fr) 78px; align-items: center; gap: 10px; }
+  .pollutant-name { font-size: 11px; font-weight: 700; }
+  .bar-track { height: 9px; overflow: hidden; border-radius: 999px; background: #3a3a3a; }
+  .bar-fill { height: 100%; border-radius: inherit; background: var(--teal); transition: width 350ms ease; }
+  .pollutant-value { text-align: right; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .pollutant-footnote { margin: 17px 0 0; color: var(--muted); font-size: 10px; }
+  .weather-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 20px; }
+  .weather-item { padding: 8px 9px; border-radius: 9px; background: var(--surface-soft); }
+  .weather-label { display: block; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .weather-value { display: block; margin-top: 2px; font: 700 13px var(--display); }
+  .forecast-card { padding-bottom: 16px; }
+  .forecast-row { grid-template-columns: minmax(0, 1.25fr) minmax(320px, .9fr); }
+  .forecast-header { align-items: center; }
+  .forecast-control { display: flex; align-items: center; gap: 10px; }
+  .forecast-control output { min-width: 128px; color: var(--ink); font-size: 11px; font-weight: 700; text-align: right; }
+  .forecast-slider { width: 170px; accent-color: var(--teal); cursor: pointer; }
+  .forecast-slider { height: 24px; appearance: none; -webkit-appearance: none; background: transparent; }
+  .forecast-slider::-webkit-slider-runnable-track { height: 5px; border-radius: 999px; background: #4a4a4a; }
+  .forecast-slider::-moz-range-track { height: 5px; border-radius: 999px; background: #4a4a4a; }
+  .forecast-slider::-webkit-slider-thumb {
+    width: 22px; height: 22px; margin-top: -9px; appearance: none; -webkit-appearance: none;
+    border: 0; background: var(--rose);
+    clip-path: polygon(50% 92%, 8% 54%, 2% 39%, 5% 23%, 17% 11%, 34% 9%, 50% 27%, 66% 9%, 83% 11%, 95% 23%, 98% 39%, 92% 54%);
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45));
+  }
+  .forecast-slider::-moz-range-thumb {
+    width: 22px; height: 22px; border: 0; border-radius: 0; background: var(--rose);
+    clip-path: polygon(50% 92%, 8% 54%, 2% 39%, 5% 23%, 17% 11%, 34% 9%, 50% 27%, 66% 9%, 83% 11%, 95% 23%, 98% 39%, 92% 54%);
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45));
+  }
+  .forecast-cards { display: grid; grid-template-columns: repeat(5, minmax(90px, 1fr)); gap: 10px; }
+  .forecast-item { padding: 12px 8px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); text-align: center; cursor: pointer; transition: border-color 150ms ease, transform 150ms ease, background 150ms ease; }
+  .forecast-item:hover { transform: translateY(-2px); border-color: #9dcfc9; }
+  .forecast-item.selected { border-color: var(--teal); background: var(--teal-soft); }
+  .forecast-time { color: var(--muted); font-size: 10px; }
+  .forecast-aqi { margin: 4px 0 1px; font: 800 22px var(--display); letter-spacing: -.04em; }
+  .forecast-category { font-size: 10px; font-weight: 700; }
+  .forecast-chart-card { min-height: 335px; }
+  .forecast-chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .forecast-chart text { font-family: var(--sans); }
+  .forecast-bar { cursor: pointer; transition: opacity 150ms ease; }
+  .forecast-bar:hover { opacity: .78; }
+  .forecast-legend { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-top: 2px; color: var(--muted); font-size: 10px; }
+  .forecast-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 11px; height: 11px; border-radius: 3px; background: var(--teal); }
+  .legend-swatch.current { width: 16px; height: 0; border-top: 2px dashed #77869a; border-radius: 0; background: transparent; }
+  .scale { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .scale-item { min-width: 0; padding: 8px 4px; border-radius: 8px; color: #f5f5f1; text-align: center; }
+  .scale-item strong { display: block; font-size: 10px; }
+  .scale-item small { display: block; font-size: 9px; }
+  .state { max-width: 700px; margin: 60px auto; padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; }
+  .state button { margin: 12px 4px 0; }
+  .empty-favorites { padding: 10px; color: var(--muted); font-size: 11px; }
+  .footer { margin-top: 20px; color: var(--muted); text-align: center; font-size: 10px; }
+  .hidden { display: none !important; }
+  @media (max-width: 1100px) {
+    .overview-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .gauge-card { grid-column: 1 / -1; min-height: 160px; grid-template-columns: 160px 1fr; }
+    .gauge-wrap { width: 150px; }
+    .dashboard-row { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { padding: 12px 14px; }
+    .brand { padding: 0 4px; }
+    .side-label, .sidebar-note, .side-spacer { display: none; }
+    .sidebar nav { display: flex; gap: 5px; overflow-x: auto; }
+    .nav-link { width: auto; min-width: max-content; padding: 8px 10px; }
+    .main { padding: 20px 14px 28px; }
+    .topbar { align-items: flex-start; flex-direction: column; }
+    .top-actions { width: 100%; justify-content: flex-start; }
+    .select-control { flex: 1; }
+    .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .gauge-card { grid-column: 1 / -1; }
+    .metric-card { min-height: 150px; padding: 14px; }
+    .card { padding: 14px; }
+    .card-heading { flex-direction: column; }
+    .chart-actions { justify-content: flex-start; }
+    .forecast-control { width: 100%; justify-content: space-between; }
+    .forecast-slider { flex: 1; min-width: 70px; }
+    .forecast-control output { min-width: 106px; }
+    .forecast-cards { grid-template-columns: repeat(5, minmax(82px, 1fr)); overflow-x: auto; }
+    .scale { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 420px) {
+    .gauge-card { grid-template-columns: 125px minmax(0,1fr); gap: 7px; }
+    .gauge-wrap { width: 124px; }
+    .gauge-number { font-size: 32px; }
+    .gauge-advice { font-size: 10px; }
+    .overview-grid { gap: 8px; }
+    .metric-value { font-size: 27px; }
+    .control, .select-control { padding-right: 8px; padding-left: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">    <span class="brand-mark">◉</span><span>Breathe<span style="color:#e50914">.</span></span></div>
+    <div class="side-label">Workspace</div>
+    <nav aria-label="Dashboard sections">
+      <button class="nav-link active" type="button" data-target="overview"><span class="nav-icon">▦</span>Overview</button>
+      <button class="nav-link" type="button" data-target="trends"><span class="nav-icon">⌁</span>Trends</button>
+      <button class="nav-link" type="button" data-target="forecast"><span class="nav-icon">◷</span>Forecast</button>
+      <button class="nav-link" type="button" data-target="guide"><span class="nav-icon">ⓘ</span>AQI guide</button>
+    </nav>
+    <div class="side-spacer"></div>
+    <div class="sidebar-note"><strong>India air quality</strong>Modelled conditions from Open-Meteo. AQI follows the CPCB scale.</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="page-kicker">AIR QUALITY · INDIA</div>
+        <h1>City insights</h1>
+      </div>
+      <div class="top-actions">
+        <label class="hidden" for="city">Choose city</label>
+        <select id="city" class="select-control" aria-label="Choose a city"></select>
+        <button id="favoriteButton" class="icon-button favorite-button" type="button" aria-pressed="false" aria-label="Add city to favorites" title="Add city to favorites">♡</button>
+        <button id="favoritesFilter" class="outline-button" type="button" aria-pressed="false">All cities</button>
+        <button id="refreshButton" class="icon-button" type="button" title="Refresh data" aria-label="Refresh data">↻ <span class="refresh-text">Refresh</span></button>
+        <span id="lastUpdated" class="page-kicker"></span>
+      </div>
+    </header>
+
+    <div class="status-line">
+      <span id="statusMessage" class="status-message" role="status">Connecting to the air-quality service…</span>
+      <span id="favoriteMessage" class="page-kicker"></span>
+    </div>
+    <div id="state" class="state hidden"></div>
+
+    <div id="content" class="dashboard hidden">
+      <section id="overview" class="overview-grid" aria-label="Current city air quality overview">
+        <article class="card gauge-card">
+          <div class="gauge-wrap" role="img" aria-label="Current air quality index gauge">
+            <svg viewBox="0 0 180 180" aria-hidden="true">
+              <circle class="gauge-track" cx="90" cy="90" r="72"></circle>
+              <circle id="gaugeProgress" class="gauge-progress" cx="90" cy="90" r="72"></circle>
+            </svg>
+            <div class="gauge-center">
+              <strong id="gaugeValue" class="gauge-number">--</strong>
+              <span class="gauge-caption">CPCB AQI</span>
+            </div>
+          </div>
+          <div class="gauge-copy">
+            <div class="eyebrow">Current conditions</div>
+            <h2 id="cityName" class="card-title" style="margin-top:5px"></h2>
+            <div id="categoryPill" class="category-pill"></div>
+            <p id="advice" class="gauge-advice"></p>
+            <p id="asOf" class="card-subtitle"></p>
+          </div>
+        </article>
+        <article class="card metric-card">
+          <div><div class="metric-label">PM2.5</div><div id="pm25Value" class="metric-value">--</div><div class="metric-unit">µg/m³</div></div>
+          <div class="metric-foot"><span class="metric-icon">·</span><span id="pm25Foot">Fine particles</span></div>
+        </article>
+        <article class="card metric-card">
+          <div><div class="metric-label">PM10</div><div id="pm10Value" class="metric-value">--</div><div class="metric-unit">µg/m³</div></div>
+          <div class="metric-foot"><span class="metric-icon">◌</span><span id="pm10Foot">Coarse particles</span></div>
+        </article>
+        <article class="card metric-card">
+          <div><div class="metric-label">24-hour outlook</div><div id="outlookValue" class="metric-value">--</div><div class="metric-unit">AQI forecast</div></div>
+          <div class="metric-foot"><span id="outlookIcon" class="metric-icon">↗</span><span id="outlookFoot">Compared with current AQI</span></div>
+        </article>
+      </section>
+
+      <section class="dashboard-row" aria-label="Air quality trends and pollutants">
+        <article id="trends" class="card chart-card">
+          <div class="card-heading">
+            <div><h2 class="card-title">Air quality over time</h2><p id="chartSubtitle" class="card-subtitle">Recorded measurements and forecast</p></div>
+            <div class="chart-actions">
+              <div id="metricFilter" class="segmented" role="group" aria-label="Chart metric">
+                <button class="segment" type="button" data-metric="aqi" aria-pressed="true">AQI</button>
+                <button class="segment" type="button" data-metric="pm2_5" aria-pressed="false">PM2.5</button>
+                <button class="segment" type="button" data-metric="pm10" aria-pressed="false">PM10</button>
+              </div>
+              <div id="rangeFilter" class="segmented" role="group" aria-label="History range">
+                <button class="segment" type="button" data-hours="24" aria-pressed="false">24h</button>
+                <button class="segment" type="button" data-hours="72" aria-pressed="true">3d</button>
+                <button class="segment" type="button" data-hours="168" aria-pressed="false">7d</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-actions" style="justify-content:flex-start;margin:0 0 4px">
+            <button id="historyToggle" class="series-toggle" type="button" aria-pressed="true"><span class="series-dot"></span>Recorded</button>
+            <button id="forecastToggle" class="series-toggle" type="button" aria-pressed="true"><span class="series-dot forecast"></span>Forecast</button>
+          </div>
+          <div class="chart-scroll"><svg id="trendChart" class="trend-chart" viewBox="0 0 780 280" role="img" aria-label="Air quality trend chart"></svg></div>
+          <p id="chartNote" class="chart-note"></p>
+        </article>
+
+        <article class="card">
+          <div class="card-heading">
+            <div><h2 class="card-title">Pollutant snapshot</h2><p class="card-subtitle">Current concentration · µg/m³</p></div>
+            <span class="page-kicker">Now</span>
+          </div>
+          <div id="pollutantBars" class="pollutant-list"></div>
+          <div id="weatherSnapshot" class="weather-grid"></div>
+          <p class="pollutant-footnote">Bars compare pollutants within this city; they are not health-limit thresholds.</p>
+        </article>
+      </section>
+
+      <section id="forecast" class="dashboard-row forecast-row" aria-label="AQI forecast views">
+        <article class="card forecast-card">
+          <div class="card-heading forecast-header">
+            <div><h2 class="card-title">Forecast explorer</h2><p class="card-subtitle">Choose a time to highlight it on the charts.</p></div>
+            <div class="forecast-control">
+              <label class="hidden" for="forecastSlider">Forecast time</label>
+              <input id="forecastSlider" class="forecast-slider" type="range" min="0" max="4" step="1" value="0">
+              <output id="forecastValue" for="forecastSlider">Choose a forecast</output>
+            </div>
+          </div>
+          <div id="forecastCards" class="forecast-cards"></div>
+        </article>
+        <article class="card forecast-chart-card">
+          <div class="card-heading">
+            <div><h2 class="card-title">Forecast AQI comparison</h2><p class="card-subtitle">AQI by forecast horizon · dashed line shows current AQI</p></div>
+          </div>
+          <svg id="forecastChart" class="forecast-chart" viewBox="0 0 440 270" role="img" aria-label="Bar chart comparing forecast AQI across forecast horizons"></svg>
+          <div class="forecast-legend">
+            <span><i class="legend-swatch"></i>Forecast AQI (bar color = CPCB category)</span>
+            <span><i class="legend-swatch current"></i>Current AQI</span>
+          </div>
+        </article>
+      </section>
+
+      <section id="guide" class="card">
+        <div class="card-heading">
+          <div><h2 class="card-title">CPCB AQI categories</h2><p class="card-subtitle">A quick guide to interpreting the index.</p></div>
+        </div>
+        <div id="aqiScale" class="scale"></div>
+      </section>
+    </div>
+    <footer class="footer">Data: Open-Meteo CAMS atmospheric model · AQI calculated on the Indian CPCB scale · Forecasts from a LightGBM model. General guidance only, not medical advice.</footer>
+  </main>
+</div>
+
+<script>
+const API = "https://dlxablmidl.execute-api.ap-south-1.amazonaws.com";
+const AQI_MAX = 500;
+const CATEGORIES = [
+  { name: "Good", max: 50, lo: 0, color: "#47a58e", tip: "Air is clean. Enjoy the outdoors." },
+  { name: "Satisfactory", max: 100, lo: 51, color: "#83b96c", tip: "Fine for most people. Very sensitive people may notice slight discomfort." },
+  { name: "Moderate", max: 200, lo: 101, color: "#e1b64e", tip: "Sensitive groups should limit prolonged outdoor exertion." },
+  { name: "Poor", max: 300, lo: 201, color: "#e48b55", tip: "Reduce prolonged outdoor activity." },
+  { name: "Very Poor", max: 400, lo: 301, color: "#d96f79", tip: "Avoid outdoor exertion where possible." },
+  { name: "Severe", max: 500, lo: 401, color: "#9b6c9d", tip: "Stay indoors where possible and follow local health guidance." }
+];
+const POLLUTANTS = [
+  { key: "pm2_5", name: "PM2.5" },
+  { key: "pm10", name: "PM10" },
+  { key: "nitrogen_dioxide", name: "NO₂" },
+  { key: "sulphur_dioxide", name: "SO₂" },
+  { key: "ozone", name: "O₃" },
+  { key: "carbon_monoxide", name: "CO" }
+];
+const METRICS = {
+  aqi: { label: "AQI", unit: "CPCB index", historyKey: "aqi" },
+  pm2_5: { label: "PM2.5", unit: "µg/m³", historyKey: "pm2_5" },
+  pm10: { label: "PM10", unit: "µg/m³", historyKey: "pm10" }
+};
+const $ = id => document.getElementById(id);
+const catFor = value => CATEGORIES.find(category => value <= category.max) || CATEGORIES[CATEGORIES.length - 1];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let cities = [];
+let forecastData = null;
+let historyData = [];
+let favorites = new Set();
+let metric = "aqi";
+let rangeHours = 72;
+let selectedForecast = 0;
+let showHistory = true;
+let showForecast = true;
+let favoritesOnly = false;
+let loadSequence = 0;
+let historyRequest = 0;
+let refreshTimer = null;
+
+const circumference = 2 * Math.PI * 72;
+function formatNumber(value, digits = 1) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: digits }).format(Number(value));
+}
+function toMs(timestamp) {
+  const [date, time] = timestamp.split("T");
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  return Date.UTC(year, month - 1, day, hour, minute);
+}
+function formatTime(timestamp) {
+  const hour = Number(timestamp.slice(11, 13));
+  return `${hour % 12 || 12} ${hour < 12 ? "AM" : "PM"}`;
+}
+function formatDate(timestamp) {
+  return `${Number(timestamp.slice(8, 10))} ${MONTHS[Number(timestamp.slice(5, 7)) - 1]}`;
+}
+function formatForecastTime(item, asOf) {
+  const dayOffset = Math.round((toMs(item.time.slice(0, 10) + "T00:00") - toMs(asOf.slice(0, 10) + "T00:00")) / 86400000);
+  const day = dayOffset === 0 ? "Today" : dayOffset === 1 ? "Tomorrow" : formatDate(item.time);
+  return `${day} · ${formatTime(item.time)}`;
+}
+async function getJSON(path) {
+  const response = await fetch(API + path);
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  return response.json();
+}
+function setStatus(message, isError = false) {
+  $("statusMessage").textContent = message;
+  $("statusMessage").classList.toggle("error", isError);
+}
+function renderScale() {
+  $("aqiScale").innerHTML = CATEGORIES.map(category =>
+    `<div class="scale-item" style="background:${category.color}22"><strong>${category.name}</strong><small>${category.lo}–${category.max}</small></div>`
+  ).join("");
+}
+function renderCityOptions() {
+  const select = $("city");
+  const current = select.value;
+  const available = favoritesOnly ? cities.filter(city => favorites.has(city.name)) : cities;
+  select.replaceChildren();
+  if (!available.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No favorites yet";
+    select.appendChild(option);
+    select.disabled = true;
+  } else {
+    available.forEach(city => {
+      const option = document.createElement("option");
+      option.value = city.name;
+      option.textContent = `${city.name}, ${city.state}`;
+      select.appendChild(option);
+    });
+    select.value = available.some(city => city.name === current) ? current : available[0].name;
+    select.disabled = false;
+  }
+  $("favoritesFilter").textContent = favoritesOnly ? "Favorites" : "All cities";
+  $("favoritesFilter").setAttribute("aria-pressed", String(favoritesOnly));
+  $("favoriteButton").setAttribute("aria-pressed", String(favorites.has(select.value)));
+  $("favoriteButton").disabled = !select.value;
+  $("favoriteButton").textContent = favorites.has(select.value) ? "♥" : "♡";
+  $("favoriteButton").title = favorites.has(select.value) ? "Remove city from favorites" : "Add city to favorites";
+  $("favoriteMessage").textContent = favoritesOnly && !available.length ? "Save a city with ♥, or switch to All cities." : "";
+}
+function renderGauge(aqi) {
+  const category = catFor(aqi);
+  const progress = $("gaugeProgress");
+  progress.style.stroke = category.color;
+  progress.style.strokeDasharray = `${circumference}`;
+  progress.style.strokeDashoffset = `${circumference * (1 - Math.max(0, Math.min(Number(aqi), AQI_MAX)) / AQI_MAX)}`;
+  $("gaugeValue").textContent = formatNumber(aqi, 0);
+  $("gaugeProgress").parentElement.parentElement.setAttribute(
+    "aria-label", `Current CPCB AQI is ${aqi}, ${category.name}`
+  );
+  $("categoryPill").innerHTML = `<span class="category-dot" style="background:${category.color}"></span>${category.name}`;
+  $("advice").textContent = category.tip;
+}
+function changeSummary(current, previous) {
+  if (current == null || previous == null) return { text: "Fine particles", className: "" };
+  const difference = Number(current) - Number(previous);
+  if (!Number.isFinite(difference) || Math.abs(difference) < 0.05) return { text: "No change vs previous reading", className: "" };
+  const direction = difference > 0 ? "up" : "down";
+  const sign = difference > 0 ? "+" : "−";
+  return { text: `${sign}${formatNumber(Math.abs(difference))} vs previous reading`, className: direction };
+}
+function renderMetricCard(valueId, footId, value, previous, fallback) {
+  $(valueId).textContent = formatNumber(value);
+  const summary = changeSummary(value, previous);
+  $(footId).textContent = value == null ? "Not available" : (previous == null ? fallback : summary.text);
+  $(footId).className = `delta ${summary.className}`;
+}
+function renderOverview(data) {
+  const current = data.current;
+  const category = catFor(current.aqi);
+  const last = data.forecast[data.forecast.length - 1];
+  const delta = Number(last.aqi) - Number(current.aqi);
+  $("cityName").textContent = `${data.city}, ${data.state}`;
+  $("asOf").textContent = `Updated ${formatTime(data.as_of)} IST`;
+  renderGauge(current.aqi);
+  const previous = [...historyData].sort((a, b) => toMs(a.ts) - toMs(b.ts)).filter(row => toMs(row.ts) < toMs(data.as_of)).pop();
+  renderMetricCard("pm25Value", "pm25Foot", current.pm2_5, previous?.pm2_5, "Fine particles");
+  renderMetricCard("pm10Value", "pm10Foot", current.pm10, previous?.pm10, "Coarse particles");
+  $("outlookValue").textContent = formatNumber(last.aqi, 0);
+  $("outlookFoot").textContent = `${delta > 0 ? "+" : ""}${formatNumber(delta, 0)} AQI vs now · ${catFor(last.aqi).name}`;
+  $("outlookIcon").textContent = delta > 0 ? "↗" : delta < 0 ? "↘" : "→";
+  $("outlookIcon").style.color = delta > 0 ? "#c75a62" : "#218c72";
+  $("lastUpdated").textContent = `Updated ${formatTime(data.as_of)} IST`;
+  $("favoriteButton").setAttribute("aria-pressed", String(favorites.has(data.city)));
+  $("favoriteButton").textContent = favorites.has(data.city) ? "♥" : "♡";
+  $("favoriteButton").title = favorites.has(data.city) ? "Remove city from favorites" : "Add city to favorites";
+  renderPollutants(current);
+  renderForecast(data);
+  renderTrendChart();
+  $("favoriteMessage").textContent = category.name;
+}
+function renderPollutants(current) {
+  const values = POLLUTANTS.map(pollutant => ({ ...pollutant, value: current[pollutant.key] }))
+    .filter(pollutant => pollutant.value != null && Number.isFinite(Number(pollutant.value)));
+  const max = Math.max(1, ...values.map(item => Number(item.value)));
+  $("pollutantBars").innerHTML = values.map(item => {
+    const width = Math.max(2, Number(item.value) / max * 100);
+    return `<div class="pollutant-row" title="${item.name}: ${formatNumber(item.value)} µg/m³">
+      <span class="pollutant-name">${item.name}</span>
+      <span class="bar-track"><span class="bar-fill" style="display:block;width:${width}%;background:${catFor(current.aqi).color}"></span></span>
+      <span class="pollutant-value">${formatNumber(item.value)} µg/m³</span>
+    </div>`;
+  }).join("") || `<p class="card-subtitle">Pollutant readings are unavailable.</p>`;
+  const weather = [
+    { label: "Temperature", value: current.temperature_2m, unit: "°C" },
+    { label: "Humidity", value: current.relative_humidity_2m, unit: "%" },
+    { label: "Wind", value: current.wind_speed_10m, unit: "km/h" },
+    { label: "Pressure", value: current.surface_pressure, unit: "hPa" }
+  ];
+  $("weatherSnapshot").innerHTML = weather.map(item =>
+    `<div class="weather-item"><span class="weather-label">${item.label}</span><span class="weather-value">${item.value == null ? "—" : `${formatNumber(item.value)} ${item.unit}`}</span></div>`
+  ).join("");
+}
+function renderForecast(data) {
+  const items = data.forecast || [];
+  $("forecastSlider").max = String(Math.max(0, items.length - 1));
+  $("forecastSlider").disabled = items.length < 2;
+  $("forecastCards").replaceChildren();
+  items.forEach((item, index) => {
+    const category = catFor(item.aqi);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "forecast-item";
+    button.setAttribute("aria-pressed", String(index === selectedForecast));
+    button.setAttribute("aria-label", `${item.hours_ahead} hour forecast: AQI ${item.aqi}, ${category.name}`);
+    button.innerHTML = `<span class="forecast-time">${item.hours_ahead}h · ${formatForecastTime(item, data.as_of)}</span>
+      <span class="forecast-aqi" style="display:block;color:${category.color}">${formatNumber(item.aqi, 0)}</span>
+      <span class="forecast-category">${category.name}</span>`;
+    button.addEventListener("click", () => selectForecast(index));
+    $("forecastCards").appendChild(button);
+  });
+  selectForecast(Math.min(selectedForecast, Math.max(items.length - 1, 0)));
+}
+function selectForecast(index) {
+  if (!forecastData?.forecast?.length) return;
+  selectedForecast = Math.max(0, Math.min(forecastData.forecast.length - 1, index));
+  const item = forecastData.forecast[selectedForecast];
+  $("forecastSlider").value = String(selectedForecast);
+  $("forecastValue").textContent = `${item.hours_ahead}h · ${formatForecastTime(item, forecastData.as_of)} · AQI ${item.aqi}`;
+  document.querySelectorAll(".forecast-item").forEach((button, buttonIndex) => {
+    const selected = buttonIndex === selectedForecast;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  renderTrendChart();
+  renderForecastChart();
+}
+function renderForecastChart() {
+  const svg = $("forecastChart");
+  if (!forecastData?.forecast?.length) {
+    svg.innerHTML = `<text x="220" y="135" text-anchor="middle" fill="#748297" font-size="12">Forecast data is unavailable.</text>`;
+    return;
+  }
+  const items = forecastData.forecast;
+  const currentAqi = Number(forecastData.current.aqi);
+  const width = 440, height = 270, left = 43, right = 12, top = 14, bottom = 42;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const y = value => top + (1 - Math.max(0, Math.min(Number(value), 500)) / 500) * plotHeight;
+  const slot = plotWidth / items.length;
+  const barWidth = Math.min(42, slot * .54);
+  let markup = "";
+  for (let value = 0; value <= 500; value += 100) {
+    const py = y(value);
+    markup += `<line x1="${left}" x2="${width-right}" y1="${py}" y2="${py}" stroke="#3a3a3a" stroke-width="1"/>`;
+    markup += `<text x="${left-8}" y="${py+3}" text-anchor="end" fill="#8794a5" font-size="9">${value}</text>`;
+  }
+  const currentY = y(currentAqi);
+  markup += `<line x1="${left}" x2="${width-right}" y1="${currentY}" y2="${currentY}" stroke="#77869a" stroke-width="2" stroke-dasharray="5 4"><title>Current AQI: ${formatNumber(currentAqi, 0)}</title></line>`;
+  markup += `<text x="${width-right-2}" y="${currentY-5}" text-anchor="end" fill="#c6ccd4" font-size="9" font-weight="700">Now ${formatNumber(currentAqi, 0)}</text>`;
+  items.forEach((item, index) => {
+    const category = catFor(item.aqi);
+    const selected = index === selectedForecast;
+    const centerX = left + slot * (index + .5);
+    const barTop = y(item.aqi);
+    const barHeight = top + plotHeight - barTop;
+    markup += `<rect class="forecast-bar" data-index="${index}" x="${(centerX-barWidth/2).toFixed(1)}" y="${barTop.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${Math.max(1,barHeight).toFixed(1)}" rx="5" fill="${category.color}" stroke="${selected ? "#17283e" : "#fff"}" stroke-width="${selected ? 2 : 1}" tabindex="0" role="button" aria-label="${item.hours_ahead} hours: AQI ${formatNumber(item.aqi, 0)}, ${category.name}"><title>${item.hours_ahead}h forecast: AQI ${formatNumber(item.aqi, 0)} · ${category.name}</title></rect>`;
+    markup += `<text x="${centerX.toFixed(1)}" y="${Math.max(top+10,barTop-6).toFixed(1)}" text-anchor="middle" fill="#f5f5f1" font-size="10" font-weight="700">${formatNumber(item.aqi, 0)}</text>`;
+    markup += `<text x="${centerX.toFixed(1)}" y="${height-22}" text-anchor="middle" fill="#748297" font-size="10">${item.hours_ahead}h</text>`;
+  });
+  svg.innerHTML = markup;
+}
+function chartPointPath(points, x, y) {
+  return points.map((point, index) => `${index ? "L" : "M"}${x(point.t).toFixed(1)},${y(point.v).toFixed(1)}`).join(" ");
+}
+function renderTrendChart() {
+  if (!forecastData) return;
+  const svg = $("trendChart");
+  const W = 780, H = 300, left = 48, right = 18, top = 18, bottom = 52;
+  const metricInfo = METRICS[metric];
+  const metricValue = row => row[metricInfo.historyKey];
+  let history = historyData.filter(row => row[metricInfo.historyKey] != null)
+    .map(row => ({ t: toMs(row.ts), v: Number(metricValue(row)), ts: row.ts }))
+    .sort((a, b) => a.t - b.t);
+  const nowValue = metric === "aqi" ? forecastData.current.aqi : forecastData.current[metric];
+  const now = nowValue == null ? null : { t: toMs(forecastData.as_of), v: Number(nowValue), ts: forecastData.as_of };
+  if (showHistory && now && (!history.length || history[history.length - 1].t !== now.t)) history.push(now);
+  else if (!showHistory) history = [];
+  const future = metric === "aqi" && showForecast
+    ? forecastData.forecast.map(item => ({ t: toMs(item.time), v: Number(item.aqi), ts: item.time, index: forecastData.forecast.indexOf(item) }))
+    : [];
+  const all = [...history, ...future];
+  $("chartSubtitle").textContent = `${metricInfo.label} · Time shown in IST · Last ${rangeHours === 24 ? "24 hours" : rangeHours === 72 ? "3 days" : "7 days"}${metric === "aqi" ? " + forecast" : " · no pollutant forecast available"}`;
+  $("forecastToggle").disabled = metric !== "aqi";
+  $("forecastToggle").setAttribute("aria-pressed", String(showForecast && metric === "aqi"));
+  if (!all.length) {
+    svg.innerHTML = `<text x="390" y="130" text-anchor="middle" fill="#748297" font-size="13">No ${metricInfo.label} readings available for this range.</text>`;
+    $("chartNote").textContent = "Try a longer time range or another city.";
+    return;
+  }
+  const tMin = Math.min(...all.map(point => point.t));
+  const tMax = Math.max(...all.map(point => point.t));
+  const minVal = Math.min(0, ...all.map(point => point.v));
+  const maxVal = Math.max(1, ...all.map(point => point.v));
+  const ceiling = metric === "aqi" ? Math.max(100, Math.ceil(maxVal / 50) * 50) : maxVal * 1.18;
+  const x = time => left + ((time - tMin) / (tMax - tMin || 1)) * (W - left - right);
+  const y = value => top + (1 - (value - minVal) / (ceiling - minVal || 1)) * (H - top - bottom);
+  let markup = "";
+  const tickCount = 4;
+  for (let i = 0; i <= tickCount; i++) {
+    const value = minVal + (ceiling - minVal) * i / tickCount;
+    const py = y(value);
+    markup += `<line x1="${left}" x2="${W-right}" y1="${py}" y2="${py}" stroke="#383838" stroke-width="1"/>`;
+    markup += `<text x="${left-8}" y="${py+4}" text-anchor="end" fill="#8794a5" font-size="10">${formatNumber(value, 0)}</text>`;
+  }
+  const tickTimes = 5;
+  let previousDate = "";
+  for (let i = 0; i <= tickTimes; i++) {
+    const time = tMin + (tMax - tMin) * i / tickTimes;
+    const date = new Date(time);
+    const label = `${String(date.getUTCHours()).padStart(2, "0")}:00`;
+    const dateKey = `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
+    markup += `<text x="${x(time)}" y="${H-27}" text-anchor="middle" fill="#8794a5" font-size="10">${label}</text>`;
+    if (rangeHours > 24 && (i === 0 || dateKey !== previousDate)) {
+      markup += `<text x="${x(time)}" y="${H-9}" text-anchor="middle" fill="#a0aaba" font-size="9">${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}</text>`;
+    }
+    previousDate = dateKey;
+  }
+  if (showHistory && history.length > 1) {
+    markup += `<path d="${chartPointPath(history, x, y)}" fill="none" stroke="#e50914" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  if (future.length && now) {
+    markup += `<path d="${chartPointPath([now, ...future], x, y)}" fill="none" stroke="#d59a50" stroke-width="2.5" stroke-dasharray="6 5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  if (showHistory) {
+    history.forEach(point => {
+      markup += `<circle cx="${x(point.t)}" cy="${y(point.v)}" r="3.5" fill="#e50914"><title>${formatDate(point.ts)} ${formatTime(point.ts)} · ${metricInfo.label} ${formatNumber(point.v)}</title></circle>`;
+    });
+  }
+  future.forEach((point, index) => {
+    const selected = index === selectedForecast;
+    markup += `<circle class="chart-point" data-index="${index}" cx="${x(point.t)}" cy="${y(point.v)}" r="${selected ? 7 : 4.5}" fill="${selected ? "#c47e2d" : "#d59a50"}" stroke="#fff" stroke-width="2"><title>${formatDate(point.ts)} ${formatTime(point.ts)} · Forecast AQI ${formatNumber(point.v)}</title></circle>`;
+  });
+  svg.innerHTML = markup;
+  $("chartNote").textContent = metric === "aqi"
+    ? "Solid teal = recorded readings · dashed amber = forecast · select a forecast point to inspect it."
+    : "Solid teal = recorded readings. Pollutant forecasts are not provided by the current API.";
+}
+async function fetchHistory(city, hours, sequence, requestId) {
+  const response = await getJSON(`/history?city=${encodeURIComponent(city)}&hours=${hours}`);
+  if (sequence !== loadSequence || requestId !== historyRequest) return false;
+  historyData = response.history || [];
+  return true;
+}
+async function loadCity(city, refresh = false) {
+  if (!city) return;
+  const sequence = ++loadSequence;
+  const requestId = ++historyRequest;
+  setStatus(refresh ? "Refreshing dashboard…" : "Loading city data…");
+  $("refreshButton").disabled = true;
+  try {
+    const forecast = await getJSON(`/forecast?city=${encodeURIComponent(city)}`);
+    if (sequence !== loadSequence) return;
+    forecastData = forecast;
+    selectedForecast = 0;
+    try {
+      await fetchHistory(city, rangeHours, sequence, requestId);
+      setStatus(`Data updated · ${formatTime(forecast.as_of)} IST`);
+    } catch (error) {
+      if (sequence !== loadSequence) return;
+      historyData = [];
+      setStatus("Current conditions loaded; history is temporarily unavailable.", true);
+    }
+    if (sequence !== loadSequence) return;
+    renderOverview(forecastData);
+    $("state").classList.add("hidden");
+    $("content").classList.remove("hidden");
+    try { localStorage.setItem("aqi_city", city); } catch (error) { console.error("Could not save selected city.", error); }
+  } catch (error) {
+    if (sequence !== loadSequence) return;
+    console.error(error);
+    setStatus("Could not reach the forecast service.", true);
+    $("state").classList.remove("hidden");
+    $("state").textContent = "We couldn’t load this city’s forecast. Check your connection and try again.";
+    const retry = document.createElement("button");
+    retry.className = "outline-button";
+    retry.type = "button";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", () => loadCity(city, true));
+    $("state").appendChild(retry);
+    $("content").classList.add("hidden");
+  } finally {
+    if (sequence === loadSequence) $("refreshButton").disabled = false;
+  }
+}
+async function changeRange(hours) {
+  rangeHours = hours;
+  document.querySelectorAll("#rangeFilter .segment").forEach(button => {
+    button.setAttribute("aria-pressed", String(Number(button.dataset.hours) === hours));
+  });
+  if (!forecastData) return;
+  const sequence = loadSequence;
+  const requestId = ++historyRequest;
+  setStatus(`Loading ${hours === 24 ? "24-hour" : hours === 72 ? "3-day" : "7-day"} history…`);
+  try {
+    const loaded = await fetchHistory(forecastData.city, hours, sequence, requestId);
+    if (!loaded || sequence !== loadSequence) return;
+    renderOverview(forecastData);
+    setStatus(`Data updated · ${formatTime(forecastData.as_of)} IST`);
+  } catch (error) {
+    if (sequence !== loadSequence) return;
+    console.error(error);
+    historyData = [];
+    renderTrendChart();
+    setStatus("History is temporarily unavailable.", true);
+  }
+}
+function toggleFavorite() {
+  const city = $("city").value;
+  if (!city) return;
+  if (favorites.has(city)) favorites.delete(city);
+  else favorites.add(city);
+  try { localStorage.setItem("aqi_favorites", JSON.stringify([...favorites])); }
+  catch (error) { console.error("Could not save favorites.", error); }
+  const current = $("city").value;
+  renderCityOptions();
+  if (favoritesOnly && !favorites.has(current) && !$("city").value) return;
+  $("favoriteMessage").textContent = favorites.has(current) ? "Saved to favorites" : "Removed from favorites";
+  if (favoritesOnly && !favorites.has(current) && $("city").value !== current) loadCity($("city").value);
+}
+function initNavigation() {
+  document.querySelectorAll(".nav-link").forEach(button => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".nav-link").forEach(link => link.classList.toggle("active", link === button));
+      $(button.dataset.target).scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+async function init() {
+  renderScale();
+  initNavigation();
+  try {
+    cities = await getJSON("/cities");
+    try {
+      const saved = JSON.parse(localStorage.getItem("aqi_favorites") || "[]");
+      if (Array.isArray(saved)) favorites = new Set(saved.filter(name => typeof name === "string"));
+    } catch (error) { console.error("Could not read saved favorites.", error); }
+    let start = "Delhi";
+    try { start = localStorage.getItem("aqi_city") || start; } catch (error) { console.error("Could not read saved city.", error); }
+    if (!cities.some(city => city.name === start)) start = cities[0]?.name;
+    renderCityOptions();
+    if (start && $("city").value !== start && !favoritesOnly) $("city").value = start;
+    $("city").addEventListener("change", () => loadCity($("city").value));
+    $("favoriteButton").addEventListener("click", toggleFavorite);
+    $("favoritesFilter").addEventListener("click", () => {
+      favoritesOnly = !favoritesOnly;
+      renderCityOptions();
+      loadCity($("city").value);
+    });
+    $("refreshButton").addEventListener("click", () => loadCity($("city").value, true));
+    $("forecastSlider").addEventListener("input", event => selectForecast(Number(event.target.value)));
+    $("metricFilter").addEventListener("click", event => {
+      const button = event.target.closest("[data-metric]");
+      if (!button) return;
+      metric = button.dataset.metric;
+      document.querySelectorAll("#metricFilter .segment").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+      renderTrendChart();
+    });
+    $("rangeFilter").addEventListener("click", event => {
+      const button = event.target.closest("[data-hours]");
+      if (button) changeRange(Number(button.dataset.hours));
+    });
+    $("historyToggle").addEventListener("click", () => {
+      showHistory = !showHistory;
+      $("historyToggle").setAttribute("aria-pressed", String(showHistory));
+      renderTrendChart();
+    });
+    $("forecastToggle").addEventListener("click", () => {
+      if (metric !== "aqi") return;
+      showForecast = !showForecast;
+      $("forecastToggle").setAttribute("aria-pressed", String(showForecast));
+      renderTrendChart();
+    });
+    $("trendChart").addEventListener("click", event => {
+      const point = event.target.closest("[data-index]");
+      if (point) selectForecast(Number(point.dataset.index));
+    });
+    $("forecastChart").addEventListener("click", event => {
+      const point = event.target.closest("[data-index]");
+      if (point) selectForecast(Number(point.dataset.index));
+    });
+    $("forecastChart").addEventListener("keydown", event => {
+      const bar = event.target.closest("[data-index]");
+      if (bar && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        selectForecast(Number(bar.dataset.index));
+      }
+    });
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => {
+      if (!document.hidden && $("city").value) loadCity($("city").value, true);
+    }, 20 * 60 * 1000);
+    await loadCity($("city").value || start);
+  } catch (error) {
+    console.error(error);
+    setStatus("Could not load the city list.", true);
+    $("state").classList.remove("hidden");
+    $("state").textContent = "We couldn’t load the city list. Check your connection and try again.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "outline-button";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", init);
+    $("state").appendChild(retry);
+  }
+}
+init();
+</script>
+</body>
+</html>

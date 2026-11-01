@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AQI forecaster - hourly ingestion + forecast API for Indian cities
+
+Resources:
+  AqiTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      AttributeDefinitions:
+        - AttributeName: city
+          AttributeType: S
+        - AttributeName: ts
+          AttributeType: S
+      KeySchema:
+        - AttributeName: city
+          KeyType: HASH
+        - AttributeName: ts
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  FetchAqiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: fetch_aqi/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AqiTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AqiTable
+      Events:
+        Hourly:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+
+  ForecastApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+        AllowHeaders:
+          - "*"
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+
+  ForecastFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: forecast/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Timeout: 30
+      MemorySize: 1024
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AqiTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref AqiTable
+      Events:
+        Cities:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ForecastApi
+            Path: /cities
+            Method: GET
+        Forecast:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ForecastApi
+            Path: /forecast
+            Method: GET
+        History:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ForecastApi
+            Path: /history
+            Method: GET
+
+Outputs:
+  TableName:
+    Value: !Ref AqiTable
+  FunctionName:
+    Value: !Ref FetchAqiFunction
+  ApiUrl:
+    Value: !Sub "https://${ForecastApi}.execute-api.${AWS::Region}.amazonaws.com"
