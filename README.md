@@ -13,12 +13,8 @@
   <b>Tracks the Indian CPCB Air Quality Index for 25 major cities and forecasts it 1, 3, 6, 12 and 24 hours ahead.</b>
 </p>
 
-<p align="center">
-  <img src=""https://github.com/user-attachments/assets/27addebe-23bc-47b3-af75-ab5e976fbcf4"" height="597" alt="Screenshot 2026-11-01 192424"  />
-" alt="Dashboard" width="49%">
-  <img src=""Screenshot 2026-11-01 192445" src="https://github.com/user-attachments/assets/da8e2f17-434b-4d70-b67c-4d5bdf36c9aa" height="581"  />
-" alt="Forecast explorer" width="49%">
-</p>
+<img width="1336" height="597" alt="Screenshot 2026-11-01 192424" src="https://github.com/user-attachments/assets/1199407c-6809-4df4-9038-a374161c8565" />
+
 
 ---
 
