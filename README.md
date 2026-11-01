@@ -7,8 +7,10 @@ A serverless AWS project that tracks the **Indian CPCB Air Quality Index (AQI)**
 ![LightGBM](https://img.shields.io/badge/Model-LightGBM-2E8B57)
 ![IaC](https://img.shields.io/badge/IaC-AWS%20SAM-232F3E)
 
-![Dashboard](docs/dashboard.png)
-![Forecast explorer](docs/forecast.png)
+![Dashboard] <img width="1336" height="597" alt="Screenshot 2026-11-01 192424" src="https://github.com/user-attachments/assets/420c8d59-7e0d-423c-938a-0f9a50f790dc" />
+
+![Forecast explorer] <img width="1345" height="581" alt="Screenshot 2026-11-01 192445" src="https://github.com/user-attachments/assets/59bb7ec4-854d-4206-b774-4b10b6833f0f" />
+
 
 ## Features
 
